@@ -2,27 +2,28 @@
 //  Venue.m
 //  World Traveler
 //
-//  Created by Allan Jones on 8/22/14.
+//  Created by Allan Jones on 9/2/14.
 //  Copyright (c) 2014 Allan Jones. All rights reserved.
 //
 
 #import "Venue.h"
-#import "Menu.h"
-#import "FSCategory.h"
 #import "Contact.h"
+#import "FSCategory.h"
 #import "Location.h"
+#import "Menu.h"
+
 
 @implementation Venue
 
-@dynamic name;
 @dynamic id;
-@dynamic contact;
+@dynamic name;
 @dynamic favorite;
 @dynamic categories;
+@dynamic contact;
 @dynamic location;
 @dynamic menu;
 
-+(NSString *)keypathForResponseObject
++(NSString *)keyPathForResponseObject
 {
     return @"response.venues";
 }

@@ -8,9 +8,20 @@
 
 #import <UIKit/UIKit.h>
 #import <MapKit/MapKit.h>
+#import "Venue.h"
 
 @interface AJMapViewController : UIViewController
 
+//IBOutlets
+@property (strong, nonatomic) IBOutlet UILabel *nameLabel;
+@property (strong, nonatomic) IBOutlet UILabel *addressLabel;
+
+//IBActions
+- (IBAction)showDirectionsBarButtonItemPressed:(UIBarButtonItem *)sender;
+
+
+
 @property (strong, nonatomic) IBOutlet MKMapView *mapView;
+@property (strong, nonatomic) Venue *venue;
 
 @end

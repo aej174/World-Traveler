@@ -12,13 +12,18 @@
 #import "AFMMRecordResponseSerializationMapper.h"
 #import "Venue.h"
 #import "Location.h"
+#import "AJMapViewController.h"
 
 static NSString *const kCLIENTID = @"VBFKYAPS32GOGN5HULNNA1CZ2SR4YVIMBQWI4UCWK0H4QJTD";
 static NSString *const kCLIENTSECRET = @"FDYVPVWILLZS1PNPKEHLIYY34DWMY4XX0QKASKSD5IURQ0MJ";
 
-@interface AJListViewController ()
+#define latitudeOffset 0.01;
+#define longitudeOffset 0.01;
+
+@interface AJListViewController () <CLLocationManagerDelegate>
 
 @property (strong, nonatomic) NSArray *venues;
+@property (strong, nonatomic) CLLocationManager *locationManager;
 
 @end
 
@@ -28,6 +33,11 @@ static NSString *const kCLIENTSECRET = @"FDYVPVWILLZS1PNPKEHLIYY34DWMY4XX0QKASKS
 {
     [super viewDidLoad];
 	// Do any additional setup after loading the view, typically from a nib.
+    
+    self.locationManager = [[CLLocationManager alloc] init];
+    self.locationManager.delegate = self;
+    self.locationManager.desiredAccuracy = kCLLocationAccuracyNearestTenMeters;
+    self.locationManager.distanceFilter = 10.0;
     
     AJFourSquareSessionManager *sessionManager = [AJFourSquareSessionManager sharedClient];
     NSManagedObjectContext *context = [NSManagedObjectContext MR_defaultContext];
@@ -49,21 +59,51 @@ static NSString *const kCLIENTSECRET = @"FDYVPVWILLZS1PNPKEHLIYY34DWMY4XX0QKASKS
     // Dispose of any resources that can be recreated.
 }
 
+#pragma mark - Segue
+
+-(void)prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender
+{
+    NSIndexPath *indexPath = sender;
+    Venue *venue = self.venues[indexPath.row];
+    AJMapViewController *mapVC = segue.destinationViewController;
+    mapVC.venue = venue;
+}
+
 #pragma mark - IBActions
 
 - (IBAction)refreshBarButtonItemPressed:(UIBarButtonItem *)sender
 {
-    [[AJFourSquareSessionManager sharedClient] GET:@"venues/search?ll=30.25,-97.75" parameters:@{@"client_id" : kCLIENTID, @"client_secret" : kCLIENTSECRET, @"v" : @"20140830"} success:^(NSURLSessionDataTask *task, id responseObject)
-    {
+    [self.locationManager startUpdatingLocation];
+}
+
+#pragma mark - CLLocationManagerDelegate
+
+-(void)locationManager:(CLLocationManager *)manager didUpdateLocations:(NSArray *)locations
+{
+    CLLocation *location = [locations lastObject];
+    //NSLog(@"location is: %@", [locations lastObject]);
+    
+    [self.locationManager stopUpdatingLocation];
+    
+    [[AJFourSquareSessionManager sharedClient] GET:[NSString stringWithFormat:@"venues/search?ll=%f,%f",location.coordinate.latitude + latitudeOffset,location.coordinate.longitude +longitudeOffset] parameters:@{@"client_id" : kCLIENTID, @"client_secret" : kCLIENTSECRET, @"v" : @"20140915"} success:^(NSURLSessionDataTask *task, id responseObject) {
         NSArray *venues = responseObject;
         self.venues = venues;
-        //NSLog(@"Number of venues: %i", [self.venues count]);
         [self.tableView reloadData];
-    }
-    failure:^(NSURLSessionDataTask *task, NSError *error)
-    {
-        NSLog(@"Error: %@", error);
+        
+    } failure:^(NSURLSessionDataTask *task, NSError *error) {
+        NSLog(@"Error: %@",error);
     }];
+    
+    /*[[AJFourSquareSessionManager sharedClient] GET:[NSString stringWithFormat:@"venues/search?ll=%f,%f",location.coordinate.latitude + latitudeOffset,location.coordinate.longitude + longitudeOffset] parameters:@{@"client_id" : kCLIENTID, @"client_secret" : kCLIENTSECRET, @"v" : @"20140915"} success:^(NSURLSessionDataTask *task, id responseObject)
+     {
+         NSArray *venues = responseObject;
+         self.venues = venues;
+         [self.tableView reloadData];
+     }
+     failure:^(NSURLSessionDataTask *task, NSError *error)
+     {
+         NSLog(@"Error: %@", error);
+     }];*/
 }
 
 #pragma mark - UITableViewDataSource
@@ -84,10 +124,17 @@ static NSString *const kCLIENTSECRET = @"FDYVPVWILLZS1PNPKEHLIYY34DWMY4XX0QKASKS
     UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:@"Cell" forIndexPath:indexPath];
     Venue *venue = self.venues[indexPath.row];
     cell.textLabel.text = venue.name;
+    //NSLog(@"venue name is: %@", venue.name);
     cell.detailTextLabel.text = venue.location.address;
     
     return cell;
 }
 
+#pragma mark - UITableViewDelegate
+
+-(void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath
+{
+    [self performSegueWithIdentifier:@"listToMapSegue" sender:indexPath];
+}
 
 @end
